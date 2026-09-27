@@ -1,0 +1,225 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Howseen 22</title>
+<style>
+@font-face{font-family:Geist;src:url(fonts/geist-latin.woff2) format('woff2');font-weight:100 900}
+html,body{margin:0;background:#000;overflow:hidden}
+#stage{position:relative;width:1080px;height:1350px;overflow:hidden;background:#f7f7f5;font-family:Geist,sans-serif;color:#0f172a;letter-spacing:-.03em}
+.a{position:absolute;left:0;top:0}
+.m{position:absolute;overflow:hidden;left:0;width:1080px;text-align:center}
+.m>span{display:inline-block;white-space:nowrap}
+.card{position:absolute;background:#fff;border-radius:32px;box-shadow:0 30px 70px rgba(15,23,42,.10),0 0 0 1px rgba(15,23,42,.05);overflow:hidden}
+.chip{position:absolute;height:66px;border-radius:33px;background:#fff;box-shadow:0 8px 24px rgba(15,23,42,.08),0 0 0 1px rgba(15,23,42,.06);display:flex;align-items:center;padding:0 28px;font:500 27px Geist;white-space:nowrap;letter-spacing:-.02em}
+.logo{position:absolute;width:104px;height:104px;border-radius:28px;background:#fff;box-shadow:0 12px 30px rgba(15,23,42,.10),0 0 0 1px rgba(15,23,42,.05);display:flex;align-items:center;justify-content:center}
+.logo img{width:58px;height:58px;object-fit:contain}
+.row{position:absolute;left:44px;right:44px;height:74px;display:flex;align-items:center;font:500 27px Geist;border-bottom:1px solid #eef2f6}
+.hdr{position:absolute;left:44px;top:34px;font:600 22px Geist;color:#64748b;letter-spacing:0}
+</style></head><body>
+<div id="stage"><div class="a" style="width:1080px;height:1350px;background-image:radial-gradient(rgba(15,23,42,.10) 1.4px, transparent 1.6px);background-size:34px 34px;-webkit-mask-image:radial-gradient(ellipse 80% 70% at 50% 45%,#000 30%,transparent 80%);mask-image:radial-gradient(ellipse 80% 70% at 50% 45%,#000 30%,transparent 80%)"></div><div id="halo" class="a" style="width:1400px;height:900px;left:-160px;top:-560px;border-radius:50%;background:radial-gradient(closest-side,rgba(56,189,248,.35),rgba(56,189,248,0));"></div><div id="blobs" class="a" style="width:1080px;height:1350px;filter:blur(70px);opacity:.55"><div class="a bl" style="width:520px;height:520px;border-radius:50%;background:#7dd3fc"></div><div class="a bl" style="width:460px;height:460px;border-radius:50%;background:#c4b5fd"></div><div class="a bl" style="width:420px;height:420px;border-radius:50%;background:#a7f3d0"></div></div><div id="L" class="a" style="width:1080px;height:1350px;transform-origin:540px 675px"></div><div id="sheen" class="a" style="z-index:55;width:700px;height:2400px;top:-500px;background:linear-gradient(90deg,rgba(56,189,248,0),rgba(56,189,248,.18),rgba(167,139,250,.14),rgba(56,189,248,0));transform-origin:0 0;pointer-events:none"></div>
+<svg id="cur" class="a" viewBox="0 0 44 44" style="z-index:60;width:50px;height:50px;transform-origin:4px 3px"><path d="M5 3 L5 34 L12.5 27 L17.5 39 L22.5 37 L17.6 25.4 L27.5 25.4 Z" fill="#0f172a" stroke="#fff" stroke-width="2.4" stroke-linejoin="round"/></svg>
+</div>
+<script>
+const W = 1080, H = 1350, SKY = '#38bdf8', INK = '#0f172a';
+const clamp = (x, a = 0, b = 1) => x < a ? a : x > b ? b : x, lerp = (a, b, u) => a + (b - a) * u;
+const E = { io: u => u < .5 ? 4 * u * u * u : 1 - Math.pow(-2 * u + 2, 3) / 2, out: u => 1 - Math.pow(1 - u, 3), in: u => u * u * u, o5: u => 1 - Math.pow(1 - u, 5) };
+const P = (t, t0, d, e = E.io) => e(clamp((t - t0) / d));
+function step(tau, f = 2.6, z = .7) { if (tau <= 0) return 0; const w = 2 * Math.PI * f, wd = w * Math.sqrt(1 - z * z); return 1 - Math.exp(-z * w * tau) * (Math.cos(wd * tau) + z * w / wd * Math.sin(wd * tau)); }
+const sp = (t, t0, f, z) => step(t - t0, f, z);
+const pop = (t, t0, f = 3, z = .55) => clamp(sp(t, t0, f, z), 0, 1.25);
+const $ = id => document.getElementById(id), px = v => v + 'px';
+const Lr = $('L');
+function mk(html, z = 5) { Lr.insertAdjacentHTML('beforeend', html); const e = Lr.lastElementChild; e.style.zIndex = z; return e; }
+function box(el, x, y, w, h, r) { const s = el.style; s.left = px(x); s.top = px(y); if (w != null) s.width = px(w); if (h != null) s.height = px(h); if (r != null) s.borderRadius = px(r); }
+const vis = (el, on) => { el.style.visibility = on ? 'visible' : 'hidden'; };
+function wordify(root) {
+  const walk = (node) => { [...node.childNodes].forEach((c) => {
+    if (c.nodeType === 3) { const frag = document.createDocumentFragment(); c.textContent.split(/(\s+)/).forEach((w) => {
+      if (!w) return; if (/^\s+$/.test(w)) { frag.appendChild(document.createTextNode(w)); return; }
+      const sp = document.createElement('span'); sp.className = 'w'; sp.style.display = 'inline-block'; sp.textContent = w;
+      if (node !== root && node.style && node.style.color && node.style.color !== 'rgb(15, 23, 42)') { sp.classList.add('acc'); }
+      frag.appendChild(sp); }); c.replaceWith(frag); }
+    else if (c.nodeType === 1) walk(c); }); };
+  walk(root); return root;
+}
+const line = (html, y, size, weight = 700, color = INK) => { const el = mk(`<div class="m" style="top:${y}px;height:${Math.round(size * 1.3)}px"><span style="font:${weight} ${size}px Geist;color:${color}">${html}</span></div>`, 20); wordify(el.firstElementChild); return el; };
+function rise(el, t, tin, tout, f = 2.2) {
+  const ws = el.querySelectorAll('.w'), o = tout == null ? 0 : P(t, tout, .3, E.in);
+  if (!ws.length) { const u = t < tin ? 0 : clamp(step(t - tin, f, .8), 0, 1.03); el.firstElementChild.style.transform = `translateY(${(1 - u) * 105 - o * 105}%)`; }
+  ws.forEach((w, i) => { const u = clamp(step(t - tin - i * .055, f, .72), 0, 1.06);
+    w.style.transform = `translateY(${(1 - u) * 110 - o * 110}%) rotate(${(1 - clamp(u)) * 6}deg)`;
+    if (w.classList.contains('acc')) { w.style.backgroundImage = 'linear-gradient(90deg,#38bdf8,#818cf8,#38bdf8,#38bdf8)'; w.style.backgroundSize = '300% 100%';
+      w.style.backgroundPosition = `${(100 - (t * 60) % 100)}% 0`; w.style.webkitBackgroundClip = 'text'; w.style.backgroundClip = 'text'; w.style.color = 'transparent'; } });
+  vis(el, t >= tin && (tout == null || t < tout + .35)); }
+// scene windows
+const S = { ask: [0, 2.5], scan: [2.5, 4.5], run: [4.5, 6.5], back: [6.5, 8.0], kpi: [8.0, 10.0], prm: [10.0, 12.0], sov: [12.0, 14.0], src: [14.0, 16.0], art: [16.0, 18.0], cms: [18.0, 20.0], end: [20.0, 24.0] };
+const inS = (t, k, pad = .35) => t >= S[k][0] && t < S[k][1] + pad;
+const TT = {
+  ask1: line('Your buyers ask AI', 200, 78), ask2: line(`what to <span style="color:${'#38bdf8'}">buy.</span>`, 300, 78),
+  ask3: line(`Is it <span style="color:${'#38bdf8'}">naming you?</span>`, 980, 70),
+  scan: line('Scan your brand in 30 seconds.', 360, 52),
+  run1: line('We run your buyers’ prompts', 170, 58), run2: line(`on <span style="color:${'#38bdf8'}">5 AI engines.</span>`, 250, 58),
+  back1: line('Then we read every answer.', 170, 58),
+  kpi1: line(`Here’s <span style="color:${'#38bdf8'}">where you stand.</span>`, 200, 62),
+  prm1: line(`Track the prompts buyers <span style="color:${'#38bdf8'}">actually ask</span>`, 200, 46),
+  sov1: line(`Know your AI <span style="color:${'#38bdf8'}">share of voice</span>`, 200, 52),
+  src1: line(`See the sources AI <span style="color:${'#38bdf8'}">trusts</span>`, 200, 52),
+  art1: line(`From gap to <span style="color:${'#38bdf8'}">published article</span>`, 200, 52),
+  end1: line('Get recommended by AI.', 790, 62),
+};
+// ASK: buyer questions marquee
+const QS = ['Best CRM for B2B companies?', 'Cheapest email marketing software?', 'Top analytics tool for ecommerce?', 'Which project tool do agencies use?', 'Best AI writing assistant in 2026?', 'What payroll tool do startups use?', 'Top no-code app builders?', 'Best help desk software for SaaS?'];
+const qchips = QS.map(q => mk(`<div class="chip">${q}</div>`, 10));
+// SCAN
+const scan = mk(`<div class="card" style="border-radius:26px"><div id="dom" class="a" style="left:34px;top:30px;font:500 36px Geist;white-space:pre"></div><div id="sbtn" class="a" style="height:66px;border-radius:18px;background:${SKY};color:#fff;font:600 28px Geist;display:flex;align-items:center;justify-content:center;white-space:nowrap">Scan my brand</div></div>`, 10);
+// RUN: prompts fly to engines
+const ENG = ['svg/chatgpt', 'svg/gemini', 'svg/perplexity', 'svg/google', 'svg/claude'];
+const engs = ENG.map(l => mk(`<div class="logo"><img src="assets/${l}.svg"></div>`, 11));
+const RP = ['best CRM for B2B teams', 'alternative to the leader', 'cheapest tool for startups', 'which tool do agencies use'];
+const rps = RP.map(q => mk(`<div class="chip" style="height:58px;font-size:24px">${q}</div>`, 12));
+const runSvg = mk(`<svg class="a" width="1080" height="1350"><defs>${Array.from({ length: 10 }, (_, i) => `<linearGradient id="bg${i}" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#38bdf8" stop-opacity="0"/><stop offset=".35" stop-color="#38bdf8"/><stop offset=".7" stop-color="#a78bfa"/><stop offset="1" stop-color="#a78bfa" stop-opacity="0"/></linearGradient>`).join('')}</defs>${Array.from({ length: 10 }, (_, i) => `<path class="base" fill="none" stroke="#94a3b8" stroke-opacity=".25" stroke-width="3" stroke-linecap="round"/><path class="beam" fill="none" stroke="url(#bg${i})" stroke-width="4" stroke-linecap="round"/>`).join('')}</svg>`, 11);
+// BACK: answer cards with mention marks
+const answers = ENG.map((l, i) => mk(`<div class="card" style="border-radius:24px;width:400px;height:150px"><img src="assets/${l}.svg" class="a" style="left:26px;top:26px;width:40px;height:40px;object-fit:contain"><div class="a" style="left:84px;top:36px;width:280px;height:14px;border-radius:7px;background:#eef2f6"></div><div class="a" style="left:84px;top:62px;width:220px;height:14px;border-radius:7px;background:#eef2f6"></div><div class="mk a" style="left:26px;top:96px;height:34px;padding:0 14px;border-radius:17px;font:600 20px Geist;display:flex;align-items:center;white-space:nowrap"></div></div>`, 12));
+const MENT = [true, false, true, false, true];
+answers.forEach((a, i) => { const m = a.querySelector('.mk'); m.textContent = MENT[i] ? '✓ Your brand named' : '✕ Not mentioned'; m.style.background = MENT[i] ? '#e0f2fe' : '#fef2f2'; m.style.color = MENT[i] ? '#0369a1' : '#b91c1c'; });
+// KPI rings
+const KPI = [['Brand visibility', 22, SKY], ['Share of voice', 34, '#8b5cf6'], ['Sentiment', 73, '#34d399']];
+const kpis = KPI.map(([n, v, c]) => mk(`<div class="card" style="width:290px;height:340px;border-radius:28px"><div class="a" style="left:0;top:30px;width:290px;text-align:center;font:600 22px Geist;color:#64748b;letter-spacing:0">${n}</div><svg class="a" style="left:45px;top:80px" width="200" height="200" viewBox="0 0 200 200"><circle cx="100" cy="100" r="80" fill="none" stroke="#edf1f5" stroke-width="18"/><circle class="rv" cx="100" cy="100" r="80" fill="none" stroke="${c}" stroke-width="18" stroke-linecap="round" transform="rotate(-90 100 100)" stroke-dasharray="502.7" stroke-dashoffset="502.7"/></svg><div class="rt a" style="left:0;top:148px;width:290px;text-align:center;font:700 58px Geist">0</div></div>`, 12));
+// PROMPT table
+const prm = mk(`<div class="card"><div class="hdr">Prompt tracking</div></div>`, 12);
+const PR = [['best CRM for B2B teams', 68, [1,1,0,1,1]], ['alternative to the leader', 41, [1,0,0,1,0]], ['cheapest tool for startups', 35, [0,1,0,1,0]], ['which tool do agencies use', 22, [0,0,1,0,0]], ['CRM with the best automations', 54, [1,1,1,0,0]], ['is it worth the price?', 12, [0,0,0,1,0]]];
+const MQ = ['best CRM for startups', 'HubSpot alternatives', 'CRM for small agencies', 'easiest CRM to set up', 'CRM with WhatsApp', 'free CRM for founders', 'CRM for real estate', 'top sales tools 2026'];
+const prows = PR.map(([q, v, hits], i) => { prm.insertAdjacentHTML('beforeend', `<div class="row" style="top:${80 + i * 72}px;height:66px;font-size:25px"><span style="flex:1">${q}</span><span style="display:flex;gap:8px;margin-right:22px">${['chatgpt','gemini','perplexity','google','claude'].map((l, k) => `<img class="el" src="assets/svg/${l}.svg" style="width:28px;height:28px;object-fit:contain;opacity:${hits[k] ? 1 : .18};filter:${hits[k] ? 'none' : 'grayscale(1)'}">`).join('')}</span><span style="width:110px;height:12px;border-radius:6px;background:#edf1f5;position:relative"><i class="pb" style="position:absolute;left:0;top:0;height:12px;border-radius:6px;background:${SKY};width:0"></i></span><b class="pv" style="width:74px;text-align:right">0%</b></div>`); return prm.lastElementChild; });
+const mq = MQ.map((q, i) => mk(`<div class="chip" style="height:58px;font-size:23px;padding:0 22px 0 14px"><img src="assets/svg/${['chatgpt','gemini','perplexity','google','claude'][i % 5]}.svg" style="width:30px;height:30px;margin-right:12px">${q}</div>`, 11));
+// SOV heatmap
+const sov = mk(`<div class="card"><div class="hdr">Brand × model visibility</div></div>`, 12);
+const HB = [['Your brand', [64, 58, 47, 44, 39]], ['Competitor A', [71, 62, 55, 40, 36]], ['Competitor B', [58, 49, 42, 33, 28]], ['Competitor C', [44, 38, 30, 22, 18]]];
+const cells = [];
+HB.forEach(([b, vals], r) => { sov.insertAdjacentHTML('beforeend', `<div class="a" style="left:44px;top:${160 + r * 88}px;font:${r === 0 ? 700 : 500} 25px Geist;color:${r === 0 ? '#0369a1' : INK}">${b}</div>`);
+  vals.forEach((v, c) => { sov.insertAdjacentHTML('beforeend', `<div class="a" style="left:${300 + c * 106}px;top:${146 + r * 88}px;width:96px;height:70px;border-radius:14px;background:rgba(56,189,248,${0.18 + v / 90});color:${v > 50 ? '#fff' : INK};font:600 22px Geist;display:flex;align-items:center;justify-content:center;letter-spacing:0">${v}%</div>`); cells.push([sov.lastElementChild, r, c]); }); });
+ENG.forEach((l, c) => sov.insertAdjacentHTML('beforeend', `<img src="assets/${l}.svg" class="a" style="left:${326 + c * 106}px;top:90px;width:44px;height:44px;object-fit:contain">`));
+// SOURCES list
+const src = mk(`<div class="card"><div class="hdr">Sources &amp; citations</div></div>`, 12);
+const SR = [['svg/youtube.svg', 'youtube.com', 'Video', 165], ['svg/reddit.svg', 'reddit.com', 'Forum', 92], ['svg/trustpilot.svg', 'trustpilot.com', 'Review', 78], ['svg/wikipedia.svg', 'wikipedia.org', 'Wiki', 47], ['svg/linkedin.svg', 'linkedin.com', 'Social', 33]];
+const srows = SR.map(([f, d, k, n], i) => { src.insertAdjacentHTML('beforeend', `<div class="row" style="top:${86 + i * 80}px"><b style="width:40px;color:#94a3b8">${i + 1}</b>${f ? `<img src="assets/${f}" style="width:34px;height:34px;margin-right:16px">` : `<span style="width:34px;height:34px;margin-right:16px;border-radius:8px;background:#e2e8f0;display:inline-block"></span>`}<span style="flex:1">${d}</span><span style="font:500 20px Geist;color:#64748b;margin-right:30px;letter-spacing:0">${k}</span><b class="sn">0</b></div>`); return src.lastElementChild; });
+// ARTICLE
+const art = mk(`<div class="card"><div class="hdr">Content agent</div><div id="at" class="a" style="left:44px;top:84px;width:800px;font:700 44px/1.18 Geist"></div><div class="a" style="left:44px;top:250px;display:flex;gap:26px;font:500 22px Geist;color:#64748b;letter-spacing:0;align-items:center"><img src="assets/wordpress.svg" style="width:28px">WordPress<img src="assets/shopify.svg" style="width:28px">Shopify<img src="assets/ghost.svg" style="width:28px">Ghost</div><div id="pb2" class="a" style="height:70px;border-radius:20px;background:${SKY};color:#fff;font:600 28px Geist;display:flex;align-items:center;justify-content:center;white-space:nowrap"></div></div>`, 12);
+// ANY CMS: tiles float around the headline
+const cmsT = line('Any CMS.', 590, 150, 800);
+const cmsNote = line('<span style="color:#64748b">Native: WordPress, Shopify, Ghost, BigCommerce. Anything else via webhook.</span>', 1150, 24, 500);
+const CMSL = [['svg/shopify.svg', 690, 270], ['svg/wordpress.svg', 880, 470], ['svg/webflow.svg', 950, 900], ['svg/wix.svg', 720, 1010], ['svg/ghost.svg', 480, 1060], ['svg/bigcommerce.svg', 250, 990], ['svg/framer.svg', 110, 850], ['svg/nextjs.svg', 190, 420], ['API', 420, 240]];
+const cmsTiles = CMSL.map(([f]) => mk(`<div class="logo" style="width:120px;height:120px;border-radius:30px">${f === 'API' ? '<b style="font:800 30px Geist;letter-spacing:-.02em">API</b>' : `<img src="assets/${f}" style="width:62px;height:62px">`}</div>`, 12));
+// END
+const eMark = mk(`<img class="a" src="assets/logo-mark.png" style="width:150px;height:150px;object-fit:contain">`, 21);
+const eWord = mk(`<div class="m" style="top:560px;height:150px"><span style="font:800 120px Geist;letter-spacing:-.05em">howseen<span style="color:${SKY}">.ai</span></span></div>`, 21);
+const cta = mk(`<div class="a" style="height:96px;border-radius:48px;background:${INK};color:#fff;font:600 36px Geist;display:flex;align-items:center;justify-content:center;white-space:nowrap">Free AI visibility scan →</div>`, 21);
+const ex = mk(`<div class="a" style="font:500 22px Geist;color:#94a3b8;letter-spacing:0">Example data</div>`, 30);
+const sparks = Array.from({ length: 18 }, (_, i) => mk(`<div class="a" style="width:${10 + (i % 3) * 5}px;height:${10 + (i % 3) * 5}px;border-radius:50%;background:${i % 3 === 0 ? '#38bdf8' : i % 3 === 1 ? '#a78bfa' : '#34d399'}"></div>`, 16));
+const flood = mk(`<div class="a" style="background:${SKY}"></div>`, 15);
+const beams = new Map();
+function borderBeam(host, t, on, speed = 0.55, r = 32) {
+  let b = beams.get(host);
+  if (!b) { b = document.createElement('div'); b.className = 'a';
+    b.style.cssText = `inset:0;width:100%;height:100%;border-radius:${r}px;padding:2.5px;box-sizing:border-box;pointer-events:none;-webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude;z-index:50`;
+    host.appendChild(b); beams.set(host, b); }
+  b.style.visibility = on ? 'inherit' : 'hidden';
+  b.style.background = `conic-gradient(from ${(t * 360 * speed) % 360}deg at 50% 50%, rgba(56,189,248,0) 0deg, rgba(56,189,248,0) 250deg, #38bdf8 305deg, #a78bfa 335deg, rgba(167,139,250,0) 360deg)`;
+}
+const cardIn = (el, t, k, y, h) => { const g = clamp(sp(t, S[k][0] + .15, 2.4, .8), 0, 1.03), o = P(t, S[k][1] - .05, .35, E.in);
+  box(el, 70, lerp(y + 160, y, g) - o * 90, 940, h, 32); el.style.transform = `scale(${lerp(.9, 1, clamp(g)) * (1 - o * .06)}) rotate(${(1 - clamp(g)) * -3 + o * 2}deg)`; el.style.opacity = 1; vis(el, t >= S[k][0] + .15 && t < S[k][1] + .3);
+  el.style.clipPath = `inset(0 0 ${o * 100}% 0 round 32px)`; return g; };
+
+window.seek = async (t) => {
+  const BEAT = 60 / 130;
+  let punch = 0; for (let k = 0; 8 + k * 4 * BEAT < 24; k++) { const bt = 8 + k * 4 * BEAT; if (t >= bt) punch += .018 * Math.exp(-(t - bt) * 7) * Math.sin(Math.min(Math.PI, (t - bt) * 22)); }
+  for (let k = 0; k < 4; k++) { const bt = 8 + k * BEAT; if (t >= bt) punch += .01 * Math.exp(-(t - bt) * 9) * Math.sin(Math.min(Math.PI, (t - bt) * 26)); }
+  $('L').style.transform = `scale(${1 + .015 * Math.sin(t * .6) + punch})`;
+  document.querySelectorAll('.bl').forEach((b, i) => { const a = t * (.35 + i * .12) + i * 2.1; box(b, 540 + Math.cos(a) * 320 - 250, 675 + Math.sin(a * 1.3) * 420 - 250); });
+  const cuts = [2.5, 4.5, 6.5, 10, 12, 14, 16, 18, 20]; let sh = null; for (const c of cuts) if (t >= c - .1 && t < c + .45) sh = P(t, c - .1, .55, E.io);
+  const sheen = $('sheen'); vis(sheen, sh !== null); if (sh !== null) sheen.style.transform = `translate(${lerp(-900, 1300, sh)}px,0) rotate(18deg)`;
+  sparks.forEach((d, i) => { const a = i / 18 * Math.PI * 2 + .3, u = P(t, 8.3 + (i % 4) * .02, .75, E.o5), r = u * (240 + (i % 5) * 60);
+    box(d, 540 + Math.cos(a) * r, 640 + Math.sin(a) * r); d.style.transform = `scale(${(1 - u) * 1.2})`; vis(d, t >= 8.3 && t < 9.1); });
+  $('halo').style.transform = `translateX(${Math.sin(t * .35) * 60}px)`;
+  // ---- ASK
+  rise(TT.ask1, t, 0.1, 2.4); rise(TT.ask2, t, 0.35, 2.4); rise(TT.ask3, t, 1.35, 2.4);
+  qchips.forEach((el, i) => { const row = i % 3, dir = row % 2 ? 1 : -1, w = el.offsetWidth || 500;
+    const j = (i / 3) | 0; const x = ((j * 640 + row * 210 + dir * t * 150) % 1920 + 1920) % 1920 - 560; box(el, x, 520 + row * 110);
+    el.style.transform = `scale(${pop(t, 0.5 + i * .05) * (1 - P(t, 2.3, .3, E.in))})`; vis(el, t >= 0.5 && t < 2.65); });
+  // ---- SCAN: domain types, click
+  const sg = clamp(sp(t, 2.5, 2.4, .8), 0, 1.03), so = P(t, 4.3, .3, E.in);
+  box(scan, 100, lerp(680, 600, sg), 880, 130, 26); scan.style.transform = `scale(${lerp(.9, 1, clamp(sg)) * (1 - so)})`; vis(scan, t >= 2.5 && t < 4.65);
+  const dom = 'yourbrand.com'; $('dom').textContent = dom.slice(0, Math.round(dom.length * P(t, 2.8, .7, E.io)));
+  borderBeam(scan, t, t >= 2.6 && t < 4.4, .8, 26);
+  const prs = t >= 3.85 && t < 4.0 ? .08 : 0; box($('sbtn'), 880 - 270 - 30, 32, 270, 66); $('sbtn').style.transform = `scale(${1 - prs})`;
+  rise(TT.scan, t, 2.7, 4.3);
+  // ---- RUN: 4 prompts fan out to 5 engines (dots travel)
+  rise(TT.run1, t, 4.55, 6.4); rise(TT.run2, t, 4.75, 6.4);
+  const EX = i => 110 + i * 190, EY = 930;
+  engs.forEach((el, i) => { box(el, EX(i), EY); el.style.transform = `scale(${pop(t, 4.7 + i * .06) * (1 - P(t, 7.9, .25, E.in))})`; vis(el, t >= 4.7 && t < 8.15); });
+  rps.forEach((el, i) => { const w = el.offsetWidth || 380; box(el, 540 - w / 2, 440 + i * 76); el.style.transform = `scale(${pop(t, 4.8 + i * .08) * (1 - P(t, 6.4, .25, E.in))})`; vis(el, t >= 4.8 && t < 6.7); });
+  // Animated Beam (21st.dev / magicui) ported to seek(t): a grey base path + a gradient that sweeps along it
+  const bases = runSvg.querySelectorAll('.base'), bms = runSvg.querySelectorAll('.beam'), grads = runSvg.querySelectorAll('linearGradient');
+  for (let k = 0; k < 10; k++) {
+    const out = k < 5, ei = k % 5; const x0 = out ? 540 : EX(ei) + 52, y0 = out ? 440 + 3 * 76 + 58 : EY, x1 = out ? EX(ei) + 52 : EX(ei) + 52, y1 = out ? EY : EY - 1;
+    let d = '', on = false, prog = 0, grow = 0;
+    if (out) { d = `M${x0} ${y0} C ${x0} ${(y0 + y1) / 2 + 60}, ${x1} ${(y0 + y1) / 2 - 60}, ${x1} ${y1}`; on = t >= 5.2 && t < 6.7; grow = P(t, 5.2 + ei * .05, .4, E.out); prog = ((t - 5.35 - ei * .07) / .75); }
+    else { d = `M${x0} ${y0} C ${x0} ${y0 - 180}, ${lerp(x0, 540, .5)} ${520}, 540 420`; on = t >= 6.55 && t < 7.9; grow = P(t, 6.55 + ei * .05, .35, E.out); prog = ((t - 6.6 - ei * .06) / .6); }
+    bases[k].setAttribute('d', d); bms[k].setAttribute('d', d);
+    const L = bases[k].getTotalLength(); bases[k].setAttribute('stroke-dasharray', L); bases[k].setAttribute('stroke-dashoffset', L * (1 - grow));
+    bases[k].style.visibility = bms[k].style.visibility = on ? 'visible' : 'hidden';
+    // gradient window slides along the path's bounding box (like the framer-motion x1/x2 animation)
+    const bx0 = Math.min(x0, x1), bx1 = Math.max(x0, x1), by0 = Math.min(y0, y1, 420), by1 = Math.max(y0, y1);
+    const u = ((prog % 1) + 1) % 1, dirX = x1 >= x0 ? 1 : -1;
+    const sx = x0 + (x1 - x0) * (u * 1.4 - .4), sy = y0 + (y1 - y0) * (u * 1.4 - .4);
+    const ex = x0 + (x1 - x0) * (u * 1.4), ey = y0 + (y1 - y0) * (u * 1.4);
+    grads[k].setAttribute('x1', sx); grads[k].setAttribute('y1', sy); grads[k].setAttribute('x2', ex); grads[k].setAttribute('y2', ey);
+    bms[k].style.opacity = prog > 0 ? 1 : 0;
+  }
+  // ---- BACK: answers come back from each engine, brand marked or not
+  rise(TT.back1, t, 6.55, 7.85);
+  answers.forEach((el, i) => { const col = i % 2, row = (i / 2) | 0; const tx = i === 4 ? 340 : 110 + col * 460, ty = 360 + row * 180;
+    const u = P(t, 6.6 + i * .08, .5, E.o5); box(el, lerp(EX(i), tx, u), lerp(EY, ty, u)); el.style.transform = `scale(${lerp(.3, 1, u) * (1 - P(t, 7.85, .2, E.in))})`; el.style.transformOrigin = '0 0';
+    el.querySelector('.mk').style.transform = `scale(${pop(t, 7.0 + i * .08)})`; vis(el, t >= 6.6 && t < 8.05); });
+  // ---- DROP 8.0: sky flood from the centre, then KPI rings
+  const fu = P(t, 8.0, .3, E.in), fo = P(t, 8.35, .35, E.io); const R = t < 8.35 ? lerp(30, 1000, fu) : lerp(1000, 0, fo);
+  box(flood, 540 - R, 675 - R, 2 * R, 2 * R, R); vis(flood, t >= 8.0 && t < 8.7 && R > 1);
+  rise(TT.kpi1, t, 8.4, 9.85);
+  kpis.forEach((el, i) => { box(el, 60 + i * 330 - 5, 470); el.style.transform = `scale(${pop(t, 8.45 + i * .1) * (1 - P(t, 9.85, .25, E.in))})`; vis(el, t >= 8.45 && t < 10.1);
+    const u = P(t, 8.7 + i * .1, .9, E.out); el.querySelector('.rv').setAttribute('stroke-dashoffset', 502.7 * (1 - KPI[i][1] / 100 * u)); el.querySelector('.rt').textContent = Math.round(KPI[i][1] * u); });
+  // ---- PROMPTS
+  rise(TT.prm1, t, 10.05, 11.85); cardIn(prm, t, 'prm', 330, 530); borderBeam(prm, t, true, .45);
+  prows.forEach((r, i) => { const u = P(t, 10.35 + i * .07, .7, E.out); r.querySelector('.pb').style.width = px(110 * PR[i][1] / 100 * u); r.querySelector('.pv').textContent = Math.round(PR[i][1] * u) + '%';
+    r.querySelectorAll('.el').forEach((im, k) => { im.style.transform = `scale(${pop(t, 10.45 + i * .07 + k * .03, 3.4, .6)})`; }); });
+  mq.forEach((el, i) => { const row = i % 2, j = (i / 2) | 0, dir = row ? 1 : -1, w = el.offsetWidth || 360; const x = ((j * 470 + row * 230 + dir * (t - 10) * 140) % 1880 + 1880) % 1880 - 480;
+    box(el, x, 905 + row * 76); el.style.transform = `scale(${pop(t, 10.3 + i * .04) * (1 - P(t, 11.9, .3, E.in))})`; vis(el, t >= 10.3 && t < 12.2); });
+  // ---- SHARE OF VOICE heatmap
+  rise(TT.sov1, t, 12.05, 13.85); cardIn(sov, t, 'sov', 380, 540); borderBeam(sov, t, true, .45);
+  cells.forEach(([el, r, c]) => { el.style.transform = `scale(${pop(t, 12.35 + (r + c) * .045, 3.2, .6)})`; });
+  // ---- SOURCES
+  rise(TT.src1, t, 14.05, 15.85); cardIn(src, t, 'src', 380, 510); borderBeam(src, t, true, .45);
+  srows.forEach((r, i) => { r.style.transform = `translateX(${(1 - P(t, 14.3 + i * .08, .5, E.o5)) * 60}px)`; r.style.opacity = P(t, 14.3 + i * .08, .01); r.querySelector('.sn').textContent = Math.round(SR[i][3] * P(t, 14.4 + i * .08, .6, E.out)); });
+  // ---- ARTICLE: writes, Publish -> Published
+  rise(TT.art1, t, 16.05, 17.85); cardIn(art, t, 'art', 420, 420); borderBeam(art, t, true, .6);
+  const tl = 'Best CRM for B2B teams in 2026: an honest comparison'; $('at').textContent = tl.slice(0, Math.round(tl.length * P(t, 16.3, .7, E.io)));
+  const done = t >= 17.35; box($('pb2'), 940 - 260 - 44, 320, 260, 70); $('pb2').textContent = done ? '✓ Published' : 'Publish';
+  $('pb2').style.background = done ? '#16a34a' : SKY; $('pb2').style.transform = `scale(${(t >= 17.2 && t < 17.35 ? .92 : 1) * pop(t, 16.9)})`;
+  // ---- ANY CMS
+  rise(cmsT, t, 18.1, 19.85); rise(cmsNote, t, 18.5, 19.85);
+  cmsTiles.forEach((el, i) => { const [f, x, y] = CMSL[i]; const fl = Math.sin(t * 1.6 + i * 1.3) * 10;
+    box(el, x - 60, y - 60 + fl); el.style.transform = `scale(${pop(t, 18.15 + i * .06, 3, .55) * (1 - P(t, 19.85, .3, E.in))}) rotate(${Math.sin(t * 1.1 + i) * 3}deg)`; vis(el, t >= 18.15 && t < 20.2); });
+  // ---- END
+  box(eMark, 540 - 75, 380); eMark.style.transform = `scale(${pop(t, 20.1, 2.4, .55)}) rotate(${(1 - clamp(P(t, 20.1, .6, E.o5))) * -90}deg)`; vis(eMark, t >= 20.1);
+  rise(eWord, t, 20.35); rise(TT.end1, t, 20.7); box(cta, 540 - 260, 930, 520, 96); borderBeam(cta, t, t >= 21.1, .7, 48); cta.style.transform = `scale(${pop(t, 21.1)})`; vis(cta, t >= 21.1);
+  // example label
+  vis(ex, (t >= 6.6 && t < 8.0) || (t >= 8.45 && t < 18.0)); box(ex, 880, 1300);
+  // cursor: click Scan, click Publish, click CTA
+  const cur = $('cur'); let on = false, x = 0, y = 0, dip = 0;
+  if (t >= 3.1 && t < 4.2) { const u = P(t, 3.1, .7, E.io); x = lerp(1120, 100 + 880 - 170, u); y = lerp(1400, 600 + 70, u); on = true; if (t >= 3.85 && t < 4.0) dip = .14; }
+  if (t >= 16.7 && t < 17.8) { const u = P(t, 16.7, .45, E.io); x = lerp(1120, 70 + 940 - 170, u); y = lerp(1400, 420 + 360, u); on = true; if (t >= 17.2 && t < 17.35) dip = .14; }
+  if (t >= 21.4) { const u = P(t, 21.4, .8, E.io); x = lerp(1120, 700, u); y = lerp(1400, 990, u); on = true; if (t >= 22.35 && t < 22.5) dip = .14; }
+  vis(cur, on); cur.style.transform = `translate(${x - 4}px,${y - 3}px) scale(${1 - dip})`;
+  if (t >= 22.35) cta.style.transform = `scale(${1 - (t < 22.51 ? Math.sin(Math.PI * (t - 22.35) / .16) * .05 : 0)})`;
+  return true;
+};
+(async () => { await document.fonts.load('700 100px Geist'); await document.fonts.ready;
+  await Promise.all([...document.images].map(i => i.complete ? 0 : new Promise(r => { i.onload = i.onerror = r; })));
+  await window.seek(0); window.ready = true; })();
+</script></body></html>
