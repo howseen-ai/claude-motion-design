@@ -58,3 +58,22 @@ Reference implementation: `examples/howseen-launch` in this repo (24 s, 1080x135
 
 ## 7. Delivery checklist
 ☐ stills approved ☐ drop on the key moment ☐ 0 unexplained pops ☐ -14 LUFS ☐ BT.709 TV range ☐ "Example data" labels ☐ caption true ☐ file path given.
+
+## 8. Critique loop (make the model watch its own frames)
+Before any full render, and after it:
+```
+ffmpeg -i out/final.mp4 -vf "fps=2,scale=270:-1,tile=6x5" -frames:v 1 out/contact.png      # overview
+ffmpeg -ss <t-0.1> -i out/final.mp4 -vf "scale=320:-1,tile=12x1" -frames:v 1 out/strip.png  # 12 frames around a fast move
+ffmpeg -i out/final.mp4 -vf "fps=1,scale=360:-1,tile=5x3" -frames:v 1 out/phone.png         # readability at phone width
+ffmpeg -stream_loop 1 -i out/final.mp4 -c copy out/loop_check.mp4                            # loop seam (loops only)
+```
+Open them and **score 1-10**: hook in the first 2 s · readability at 360 px · motion quality (springs, no dead frames) · variety (something new every 2-4 s) · composition · brand/data accuracy · sound sync. Write the 3 worst problems with timestamps (hunt for: text overlapping during swaps, anything moving linearly, corner labels/frame borders, centred title on a gradient, blurry scaled text, a dead beat, a loop stutter). Fix, re-render only the affected seconds, re-score. **Repeat until every score is 8+.** Be a harsh motion director, not a proud author.
+
+## 9. Extra rules
+- **Determinism**: never `Math.random`; use a seeded PRNG (mulberry32). Rendering the same second twice must give identical frames.
+- **Reference first**: with a reference video/frame, extract a frame every 0.5 s with ffmpeg, write `docs/style_guide.md` (palette hex, type, shot lengths, transitions, camera, texture, text in/out) and `docs/shotlist.md` on the beat grid. Take the grammar, never the content or logos. Wait for OK before code.
+- **Real product only**: capture the real UI (Playwright screenshots of the site/app) into `./assets` and list what you found; never invent screens. If a paywall blocks it, ask the user for screenshots or clearly label a recreated UI as illustrative.
+- **Spring presets** (stiffness k, damping d): snappy UI 320/30, default containers/camera 170/26, heavy type/logos 120/24, playful mascots 180/12. Leading and trailing edges of a stretching indicator on different springs.
+- **Formats**: write scenes against a layout function, then render 9:16, 1:1, 16:9 and 4:5 from the same timeline, reframing type and UI per format (never crop).
+- **Synthesized sound option**: when no track is supplied, SFX can be synthesized in code (click = short decaying sine, pop = rising sine, thump = falling sine, whoosh = windowed noise) on the same timeline.
+- **Effort**: medium for small fixes, xhigh for a new film, max when the first 3 seconds carry a launch.
