@@ -1,0 +1,22 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Howseen remake</title>
+<style>
+@font-face{font-family:'Geist';src:url(fonts/geist-latin.woff2) format('woff2');font-weight:100 900;font-display:block}
+html,body{margin:0;background:#fff}
+#stage{position:relative;width:1920px;height:1080px;overflow:hidden;background:#fff;font-family:'Geist',-apple-system,Helvetica,Arial,sans-serif;color:#0f172a;-webkit-font-smoothing:antialiased}
+#stage *{box-sizing:border-box}
+</style></head>
+<body><div id="stage"></div>
+<script src="core.js"></script>
+<script src="shots/G1.js"></script>
+<script src="shots/G2.js"></script>
+<script src="shots/G3.js"></script>
+<script src="shots/G4.js"></script>
+<script>
+(async () => {
+  await document.fonts.load("600 40px Geist"); await document.fonts.ready;
+  const srcs = ['logo-mark.png','logo-chatgpt-v2.png','logo-claude.png','logo-gemini.png','logo-google.png','logo-perplexity.png','shopify.svg','reddit.svg','wordpress.svg','g2.svg','trustpilot.svg'];
+  await Promise.all(srcs.map(s => new Promise(r => { const i = new Image(); i.onload = i.onerror = () => r(); i.src = 'assets/' + s; })));
+  window.seek(0); window.ready = true;
+})();
+</script></body></html>
