@@ -43,6 +43,7 @@ Then mux: `ffmpeg -i out/video.mp4 -i out/audio.wav -map 0:v -map 1:a -c:v libx2
 - **Render**: Playwright screenshots, N subframes per frame blended with `tmix`, BT.709 TV-range encode, single-frame pop detection.
 - **Audio**: find the real drop by band energy (never trust an auto beat grid), start the song so the drop hits the key frame, place each SFX by its measured peak, two-pass loudnorm to -14 LUFS.
 - **Assets**: free sources only (Mixkit music/SFX/video, Pexels, Unsplash, svgl logos, simple-icons). Scripts to search and download them.
+- **Remake mode** (`skill/motion-design/scripts/remake/`): frame-locked 1:1 remake of any launch video for your brand, the "original | opus 5.5 copy" split-screen. Phase 0 extracts every frame, detects cuts and writes a shot-by-shot spec; phase 1 is a shared `seek(F)` engine with a palette filter; phase 2 runs 4 build agents (one per shot group, each verifying side-by-side compare sheets against the reference) plus 1 audio agent (royalty-free track stretched to the reference BPM, synthesized SFX on the reference hit times); phase 3 renders, encodes the split-screen and a stacked sync check. Brief template included. Never reuse the reference's music, voice or people photos.
 - **Honesty rules**: illustrative data is labelled "Example data" on screen; captions stay true.
 
 ## Credits and licenses
